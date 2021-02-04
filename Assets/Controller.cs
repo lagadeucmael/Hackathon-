@@ -15,14 +15,18 @@ public class Controller : MonoBehaviour
     public Main main;
     public double distanceSaisie = 0.1;
 
-    protected List<InputDevice> devices;
-    protected List<InputDevice> hmd;
+    protected List<InputDevice> hand;
+
+    protected bool clicMD = false;
+    protected bool clicMG = false;
+
+    protected bool kaplaSpawnedAlready = false;
 
 
 
     private void Awake()
     {
-        devices = new List<InputDevice>();
+        hand = new List<InputDevice>();
     }
 
     void GrabClosestKapla(InputDevice d, int layer, double threshold)
@@ -97,18 +101,16 @@ public class Controller : MonoBehaviour
 
     void Update()
     {
-        devices.Clear();
-
+        hand.Clear();
 
         InputDeviceCharacteristics x = main == Main.DROITE ? InputDeviceCharacteristics.Right : InputDeviceCharacteristics.Left;
 
-        InputDevices.GetDevicesWithCharacteristics(InputDeviceCharacteristics.Controller | x, devices);
+        InputDevices.GetDevicesWithCharacteristics(InputDeviceCharacteristics.Controller | x, hand);
 
-        foreach (InputDevice d in devices)
-        {
-            if (d.TryGetFeatureValue(CommonUsages.devicePosition, out Vector3 pos))
+        if (hand.Count != 0) { 
+            if (hand[0].TryGetFeatureValue(CommonUsages.devicePosition, out Vector3 pos))
             {
-                if (d.TryGetFeatureValue(CommonUsages.deviceRotation, out Quaternion rot))
+                if (hand[0].TryGetFeatureValue(CommonUsages.deviceRotation, out Quaternion rot))
                 {
                     transform.localPosition = pos;
                     transform.localRotation = rot;
@@ -117,15 +119,37 @@ public class Controller : MonoBehaviour
 
 
 
-            if (d.TryGetFeatureValue(CommonUsages.trigger, out float t) && t > 0.5)
+            if (hand[0].TryGetFeatureValue(CommonUsages.trigger, out float t) && t > 0.5)
             {
-                GrabClosestKapla(d, KaplasLayer, distanceSaisie);
+                if (main == Main.DROITE)
+                {
+                    List<InputDevice> leftHand = new List<InputDevice>();
+                    InputDevices.GetDevicesWithCharacteristics(InputDeviceCharacteristics.Controller | InputDeviceCharacteristics.Left, leftHand);
+                    if (!kaplaSpawnedAlready && (leftHand[0].TryGetFeatureValue(CommonUsages.trigger, out float tl) && tl > 0.5))
+                    {
+                        GameObject myPrefab = (GameObject)Resources.Load("Kapla");
+                        GameObject.Instantiate(myPrefab);
+                        if (hand[0].TryGetFeatureValue(CommonUsages.devicePosition, out Vector3 posr))
+                        {
+                            myPrefab.transform.position = posr;
+                        }
+
+                        kaplaSpawnedAlready = true;
+                    }
+                }
+
+                GrabClosestKapla(hand[0], KaplasLayer, distanceSaisie);
                 transform.localScale = 0.1f * Vector3.one;
+
             }
             else
             {
-                ReleaseClosestKapla(d, KaplasLayer, distanceSaisie);
+                ReleaseClosestKapla(hand[0], KaplasLayer, distanceSaisie);
                 transform.localScale = 0.05f * Vector3.one;
+                if (main == Main.DROITE)
+                {
+                    kaplaSpawnedAlready = false;
+                }
             }
         }
     }
