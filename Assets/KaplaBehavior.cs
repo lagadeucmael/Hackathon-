@@ -6,45 +6,51 @@ public class KaplaBehavior : MonoBehaviour
 {
     protected bool rightHand;
 
-    protected List<InputDevice> hand;
+    protected InputDevice hand;
+
+    protected bool grabbed = false;
+    protected bool grabEvent = false;
+    protected Quaternion previousRotation;
 
     // Start is called before the first frame update
     void Start()
     {
-        isBeingHandled = false;
-        hand = new List<InputDevice>();
+
     }
 
-    protected bool isBeingHandled;
-
-    public void Grab(int _rightHand)
+    public void Grab(InputDevice _hand)
     {
-        isBeingHandled = true;
-        rightHand = _rightHand == 1;
+        hand = _hand;
+        if (!grabbed)
+        {
+            grabEvent = true;
+        }
+        grabbed = true;
         this.GetComponent<Rigidbody>().isKinematic = true;
     }
 
     public void Release()
     {
-        isBeingHandled = false;
         this.GetComponent<Rigidbody>().isKinematic = false;
+        grabbed = false;
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (isBeingHandled)
+        if (grabbed)
         {
-            InputDeviceCharacteristics x = rightHand ? InputDeviceCharacteristics.Right : InputDeviceCharacteristics.Left;
-
-            InputDevices.GetDevicesWithCharacteristics(InputDeviceCharacteristics.Controller | x, hand);
-
-            if (hand[0].TryGetFeatureValue(CommonUsages.devicePosition, out Vector3 pos))
+            if (hand.TryGetFeatureValue(CommonUsages.devicePosition, out Vector3 pos))
             {
-                if (hand[0].TryGetFeatureValue(CommonUsages.deviceRotation, out Quaternion rot))
+                if (hand.TryGetFeatureValue(CommonUsages.deviceRotation, out Quaternion rot))
                 {
-                    transform.localPosition = pos;
-                    transform.localRotation = rot;
+                    if (grabEvent)
+                    {
+                        previousRotation = Quaternion.Inverse(rot)*transform.rotation;
+                        grabEvent = false;
+                    }
+                    transform.position = pos;
+                    transform.rotation = rot * previousRotation;
                 }
             }
         }

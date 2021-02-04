@@ -22,14 +22,18 @@ public class Controller : MonoBehaviour
 
     protected bool kaplaSpawnedAlready = false;
 
+    protected Vector3 pos;
+    protected Quaternion rot;
 
+
+    bool grabbing = false;
 
     private void Awake()
     {
         hand = new List<InputDevice>();
     }
 
-    void GrabClosestKapla(InputDevice d, int layer, double threshold)
+    bool GrabClosestKapla(InputDevice d, int layer, double threshold)
     {
         var allGOs = FindObjectsOfType<GameObject>();
         var kaplas = new List<GameObject>();
@@ -59,9 +63,10 @@ public class Controller : MonoBehaviour
         if (mag < threshold)
         {
             GameObject ck = tab[closestIndex];
-            ck.GetComponent<KaplaBehavior>().Grab((d.characteristics & InputDeviceCharacteristics.Right) != 0 ? 1 : 0);
+            ck.GetComponent<KaplaBehavior>().Grab(d);
+            return true;
         }
-        kaplas = null;
+        return false;
     }
 
     void ReleaseClosestKapla(InputDevice d, int layer, double threshold)
@@ -108,16 +113,14 @@ public class Controller : MonoBehaviour
         InputDevices.GetDevicesWithCharacteristics(InputDeviceCharacteristics.Controller | x, hand);
 
         if (hand.Count != 0) { 
-            if (hand[0].TryGetFeatureValue(CommonUsages.devicePosition, out Vector3 pos))
+            if (hand[0].TryGetFeatureValue(CommonUsages.devicePosition, out pos))
             {
-                if (hand[0].TryGetFeatureValue(CommonUsages.deviceRotation, out Quaternion rot))
+                if (hand[0].TryGetFeatureValue(CommonUsages.deviceRotation, out rot))
                 {
                     transform.localPosition = pos;
                     transform.localRotation = rot;
                 }
             }
-
-
 
             if (hand[0].TryGetFeatureValue(CommonUsages.trigger, out float t) && t > 0.5)
             {
@@ -125,7 +128,7 @@ public class Controller : MonoBehaviour
                 {
                     List<InputDevice> leftHand = new List<InputDevice>();
                     InputDevices.GetDevicesWithCharacteristics(InputDeviceCharacteristics.Controller | InputDeviceCharacteristics.Left, leftHand);
-                    if (!kaplaSpawnedAlready && (leftHand[0].TryGetFeatureValue(CommonUsages.trigger, out float tl) && tl > 0.5))
+                    if (!kaplaSpawnedAlready && leftHand.Count > 0 && leftHand[0].TryGetFeatureValue(CommonUsages.trigger, out float tl) && tl > 0.5)
                     {
                         GameObject myPrefab = (GameObject)Resources.Load("Kapla");
                         GameObject.Instantiate(myPrefab);
@@ -137,10 +140,7 @@ public class Controller : MonoBehaviour
                         kaplaSpawnedAlready = true;
                     }
                 }
-
                 GrabClosestKapla(hand[0], KaplasLayer, distanceSaisie);
-                transform.localScale = 0.1f * Vector3.one;
-
             }
             else
             {
@@ -150,6 +150,7 @@ public class Controller : MonoBehaviour
                 {
                     kaplaSpawnedAlready = false;
                 }
+                grabbing = false;
             }
         }
     }
