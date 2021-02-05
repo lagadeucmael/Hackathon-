@@ -49,8 +49,8 @@ public class GhostKaplaBehavior : MonoBehaviour
             Vector3 v = this.transform.position - tab[i].transform.position;
             if (v.magnitude < distanceThreshold)
             {
-                float angle = Quaternion.Angle(this.transform.rotation, tab[i].transform.rotation);
-                if ((angle*angle < angleThreshold * angleThreshold) || (Mathf.PI - angle * angle) > (Mathf.PI - angleThreshold * angleThreshold))
+                float angle = Vector3.Dot(this.transform.up, tab[i].transform.up) + Vector3.Dot(this.transform.forward, tab[i].transform.forward);
+                if (angle > angleThreshold)
                 {
                     return true;
                 }
