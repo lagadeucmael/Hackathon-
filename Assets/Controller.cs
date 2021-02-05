@@ -131,12 +131,7 @@ public class Controller : MonoBehaviour
                     if (!kaplaSpawnedAlready && leftHand.Count > 0 && leftHand[0].TryGetFeatureValue(CommonUsages.trigger, out float tl) && tl > 0.5)
                     {
                         GameObject myPrefab = (GameObject)Resources.Load("Kapla");
-                        GameObject.Instantiate(myPrefab);
-                        if (hand[0].TryGetFeatureValue(CommonUsages.devicePosition, out Vector3 posr))
-                        {
-                            myPrefab.transform.position = posr;
-                        }
-
+                        GameObject.Instantiate(myPrefab, pos, rot);
                         kaplaSpawnedAlready = true;
                     }
                 }
